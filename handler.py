@@ -1,4 +1,3 @@
-
 import runpod
 import torch
 from transformers import SamModel, SamProcessor
@@ -66,13 +65,15 @@ def handler(job):
         
         masks = processor.image_processor.post_process_masks(
             outputs.pred_masks,
-            inputs["original_sizes"].cpu(),
-            inputs["reshaped_input_sizes"].cpu()
+            inputs["original_sizes"],
+            inputs["reshaped_input_sizes"],
         )
         
         scores = outputs.iou_scores.cpu().numpy()[0]
         best_mask_idx = np.argmax(scores)
-        best_mask = masks[0][0][best_mask_idx].numpy().astype(np.uint8)
+        
+        # FIXED: Moved the tensor to CPU before converting to NumPy
+        best_mask = masks[0][0][best_mask_idx].cpu().numpy().astype(np.uint8)
         
         # Return the result as a JSON object
         return {
@@ -104,8 +105,3 @@ def handler(job):
         
     else:
         return {"error": f"Invalid action: {action}"}
-
-
-# --- Start the handler ---
-# This tells RunPod to start listening for jobs and pass them to our handler.
-runpod.serverless.start({"handler": handler})
